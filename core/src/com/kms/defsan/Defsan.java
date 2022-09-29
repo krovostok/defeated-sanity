@@ -11,6 +11,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ScreenUtils;
+
 import java.lang.System;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,10 +22,13 @@ public class Defsan extends ApplicationAdapter {
     private int level = 0;
     private boolean doesHoldKey;
 
+    private float time = 0f;
+    private float period = 1f;
+
     private Texture neotpustit, playerImage, sheet, bulletImage;
     private TextureRegion[] tiles;
     private Rectangle player;
-    private List <Eye> eyes = new ArrayList<>();
+    private List<Eye> eyes = new ArrayList<>();
     private OrthographicCamera camera;
     private SpriteBatch batch;
     private int[][] map;
@@ -87,31 +91,41 @@ public class Defsan extends ApplicationAdapter {
         batch.begin();
 
         batch.draw(neotpustit, -666, -666, 160, 120);
-        for (int i = 0; i < map[level].length; i++){
-                if (map[level][i] == 0) {
-                    batch.draw(tiles[0], t * (i % 16), t * -(i / 16));
-                }
-                if (map[level][i] == 1) {
-                    batch.draw(tiles[1], t * (i % 16), t * -(i / 16));
-                }
-                if (map[level][i] == 2) {
-                    batch.draw(tiles[2], t * (i % 16), t * -(i / 16));
-                }
-                if (map[level][i] == 3) {
-                    batch.draw(tiles[3], t * (i % 16), t * -(i / 16));
-                    eyes.add(new Eye(new Rectangle(t * (i % 16), t * -(i / 16), t, t)));
-                }
-                if (map[level][i] == 4) {
-                    batch.draw(tiles[4], t * (i % 16), t * -(i / 16));
-                }
+        for (int i = 0; i < map[level].length; i++) {
+            if (map[level][i] == 0) {
+                batch.draw(tiles[0], t * (i % 16), t * -(i / 16));
+            }
+            if (map[level][i] == 1) {
+                batch.draw(tiles[1], t * (i % 16), t * -(i / 16));
+            }
+            if (map[level][i] == 2) {
+                batch.draw(tiles[2], t * (i % 16), t * -(i / 16));
+            }
+            if (map[level][i] == 3) {
+                batch.draw(tiles[3], t * (i % 16), t * -(i / 16));
+                eyes.add(new Eye(new Rectangle(t * (i % 16), t * -(i / 16), t, t)));
+            }
+            if (map[level][i] == 4) {
+                batch.draw(tiles[4], t * (i % 16), t * -(i / 16));
+            }
 
         }
-        batch.draw(playerImage, player.x, player.y);
+
+        // what the fuck
+        time += Gdx.graphics.getDeltaTime();
+        if (time > period) {
+            time -= period;
+            for (Eye eye : eyes) {
+                eye.addBullet();
+            }
+        }
         for (Eye eye : eyes) {
             eye.moveBullet();
-            batch.draw(bulletImage, eye.getBullet().x, eye.getBullet().y);
+            for (Rectangle rectangle : eye.getBulletList()) {
+                batch.draw(bulletImage, rectangle.x, rectangle.y);
+            }
         }
-        batch.draw(bulletImage, 32, 32);
+        batch.draw(playerImage, player.x, player.y);
 
         batch.end();
 
@@ -120,7 +134,7 @@ public class Defsan extends ApplicationAdapter {
         if (Gdx.input.isKeyPressed(Input.Keys.A)) player.x -= 100 * Gdx.graphics.getDeltaTime();
         if (Gdx.input.isKeyPressed(Input.Keys.D)) player.x += 100 * Gdx.graphics.getDeltaTime();
 
-        if(isCollision()){
+        if (isCollision()) {
             if (Gdx.input.isKeyPressed(Input.Keys.W)) player.y -= 100 * Gdx.graphics.getDeltaTime();
             if (Gdx.input.isKeyPressed(Input.Keys.S)) player.y += 100 * Gdx.graphics.getDeltaTime();
             if (Gdx.input.isKeyPressed(Input.Keys.A)) player.x += 100 * Gdx.graphics.getDeltaTime();
@@ -135,19 +149,19 @@ public class Defsan extends ApplicationAdapter {
     }
 
     private boolean checkCollision(float r1x, float r1y, float r1w, float r1h, float r2x, float r2y) {
-        return  r1x + r1w >= r2x &&             // r1 right edge past r2 left
+        return r1x + r1w >= r2x &&             // r1 right edge past r2 left
                 r1x <= r2x + (float) 16 &&      // r1 left edge past r2 right
                 r1y + r1h >= r2y &&             // r1 top edge past r2 bottom
                 r1y <= r2y + (float) 16;        // r1 bottom edge past r2 top
     }
 
-    private boolean isCollision(){
-        for (int i = 0; i < map[level].length; i++){
-            if (map[level][i] != 1 && map[level][i] != 3){ // COLLIDES NOT WITH FLOOR OR EYE
-                if (checkCollision(player.x, player.y, player.width, player.height / 2, t * (i % 16), t * -(i / 16))){
-                    if(map[level][i] == 2 && doesHoldKey) // IF COLLIDES WITH DOOR, THEN CHANGE THE LEVEL (IF HOLDS KEY)
+    private boolean isCollision() {
+        for (int i = 0; i < map[level].length; i++) {
+            if (map[level][i] != 1 && map[level][i] != 3) { // COLLIDES NOT WITH FLOOR OR EYE
+                if (checkCollision(player.x, player.y, player.width, player.height / 2, t * (i % 16), t * -(i / 16))) {
+                    if (map[level][i] == 2 && doesHoldKey) // IF COLLIDES WITH DOOR, THEN CHANGE THE LEVEL (IF HOLDS KEY)
                         level++;
-                    if(map[level][i] == 4) { // IF COLLIDES WITH KEY, PICK UP KEY
+                    if (map[level][i] == 4) { // IF COLLIDES WITH KEY, PICK UP KEY
                         doesHoldKey = true;
                         map[level][i] = 1;
                     }

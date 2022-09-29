@@ -3,13 +3,24 @@ package com.kms.defsan;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Eye {
-    private Rectangle rectangleEye;
+    private final Rectangle rectangleEye;
     private Rectangle rectangleBullet;
+    private List<Rectangle> bulletList = new ArrayList();
 
     public Eye(Rectangle rectangleEye) {
         this.rectangleEye = rectangleEye;
-        rectangleBullet = new Rectangle(rectangleEye.x, rectangleEye.y, 16, 16);
+    }
+
+    public List<Rectangle> getBulletList() {
+        return bulletList;
+    }
+
+    public void setBulletList(List<Rectangle> bulletList) {
+        this.bulletList = bulletList;
     }
 
     public Rectangle getBullet() {
@@ -17,7 +28,12 @@ public class Eye {
     }
 
     public void moveBullet() {
-        rectangleBullet.y += 100 * Gdx.graphics.getDeltaTime();
-        System.out.println(rectangleBullet.y + "\n");
+        for (Rectangle bullet : bulletList) {
+            bullet.y += 20 * Gdx.graphics.getDeltaTime();
+        }
+    }
+
+    public void addBullet() {
+        bulletList.add(new Rectangle(rectangleEye.x, rectangleEye.y, 16, 16));
     }
 }
