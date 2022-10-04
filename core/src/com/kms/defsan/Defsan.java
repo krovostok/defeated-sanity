@@ -20,14 +20,15 @@ public class Defsan extends ApplicationAdapter {
 
     private final int t = 16;
     private int level = 0;
+    private int expectedNextLevel = 1;
     private boolean doesHoldKey;
-
+    private int count = 0;
     private float time = 0f;
-    private float period = 1f;
+    private float period = 0.2f;
 
     private Texture neotpustit, playerImage, sheet, bulletImage;
     private TextureRegion[] tiles;
-    private Rectangle player;
+    public Rectangle player;
     private List<Eye> eyes = new ArrayList<>();
     private OrthographicCamera camera;
     private SpriteBatch batch;
@@ -113,18 +114,36 @@ public class Defsan extends ApplicationAdapter {
 
         // what the fuck
         time += Gdx.graphics.getDeltaTime();
-        if (time > period) {
-            time -= period;
-            for (Eye eye : eyes) {
-                eye.addBullet();
+
+        if (count < 3) {
+            if (time > period) {
+                for (Eye eye : eyes) {
+                    eye.addBullet();
+                }
             }
         }
+
+        if (time > period) {
+            time -= period;
+            count++;
+            if (count > 6) count = 0;
+        }
+
         for (Eye eye : eyes) {
-            eye.moveBullet();
+            eye.moveBullet(player.x, player.y, time, period);
             for (Rectangle rectangle : eye.getBulletList()) {
                 batch.draw(bulletImage, rectangle.x, rectangle.y);
             }
         }
+
+        if (level == expectedNextLevel) { // things to do when switching level
+            for (Eye eye : eyes) {
+                eye.removeBullets();
+            }
+            eyes.removeAll(eyes);
+            expectedNextLevel++;
+        }
+
         batch.draw(playerImage, player.x, player.y);
 
         batch.end();
