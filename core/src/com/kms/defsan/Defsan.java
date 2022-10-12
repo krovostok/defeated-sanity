@@ -78,6 +78,12 @@ public class Defsan extends ApplicationAdapter {
         //batch
         batch = new SpriteBatch();
 
+        eyes = new ArrayList<Eye>();
+        for (int i = 0; i < map[level].length; i++) {
+            if (map[level][i] == 3)
+                eyes.add(new Eye(new Rectangle(t * (i % 16), t * -(i / 16), t, t)));
+        }
+
         System.out.println(level_1);
     }
 
@@ -104,7 +110,7 @@ public class Defsan extends ApplicationAdapter {
             }
             if (map[level][i] == 3) {
                 batch.draw(tiles[3], t * (i % 16), t * -(i / 16));
-                eyes.add(new Eye(new Rectangle(t * (i % 16), t * -(i / 16), t, t)));
+                //eyes.add(new Eye(new Rectangle(t * (i % 16), t * -(i / 16), t, t)));
             }
             if (map[level][i] == 4) {
                 batch.draw(tiles[4], t * (i % 16), t * -(i / 16));
@@ -118,7 +124,7 @@ public class Defsan extends ApplicationAdapter {
         if (count < 3) {
             if (time > period) {
                 for (Eye eye : eyes) {
-                    eye.addBullet();
+                    eye.addBullet(player.x, player.y);
                 }
             }
         }
@@ -130,9 +136,9 @@ public class Defsan extends ApplicationAdapter {
         }
 
         for (Eye eye : eyes) {
-            eye.moveBullet(player.x, player.y, time, period);
-            for (Rectangle rectangle : eye.getBulletList()) {
-                batch.draw(bulletImage, rectangle.x, rectangle.y);
+            eye.moveBullet(player.x, player.y, count);
+            for (Bullet bullet : eye.getBulletList()) {
+                batch.draw(bulletImage, bullet.getRectangleBullet().x, bullet.getRectangleBullet().y);
             }
         }
 
@@ -159,6 +165,7 @@ public class Defsan extends ApplicationAdapter {
             if (Gdx.input.isKeyPressed(Input.Keys.A)) player.x += 100 * Gdx.graphics.getDeltaTime();
             if (Gdx.input.isKeyPressed(Input.Keys.D)) player.x -= 100 * Gdx.graphics.getDeltaTime();
         }
+        isCollisionBullet();
     }
 
     @Override
@@ -167,23 +174,36 @@ public class Defsan extends ApplicationAdapter {
         batch.dispose();
     }
 
-    private boolean checkCollision(float r1x, float r1y, float r1w, float r1h, float r2x, float r2y) {
+    private boolean checkCollision(float r1x, float r1y, float r1w, float r1h, float r2x, float r2y, float r2h, float r2w) {
         return r1x + r1w >= r2x &&             // r1 right edge past r2 left
-                r1x <= r2x + (float) 16 &&      // r1 left edge past r2 right
+                r1x <= r2x + r2h &&      // r1 left edge past r2 right
                 r1y + r1h >= r2y &&             // r1 top edge past r2 bottom
-                r1y <= r2y + (float) 16;        // r1 bottom edge past r2 top
+                r1y <= r2y + r2w;        // r1 bottom edge past r2 top
     }
 
     private boolean isCollision() {
         for (int i = 0; i < map[level].length; i++) {
             if (map[level][i] != 1 && map[level][i] != 3) { // COLLIDES NOT WITH FLOOR OR EYE
-                if (checkCollision(player.x, player.y, player.width, player.height / 2, t * (i % 16), t * -(i / 16))) {
+                if (checkCollision(player.x, player.y, player.width, player.height / 2, t * (i % 16), t * -(i / 16), 16, 16)) {
                     if (map[level][i] == 2 && doesHoldKey) // IF COLLIDES WITH DOOR, THEN CHANGE THE LEVEL (IF HOLDS KEY)
                         level++;
                     if (map[level][i] == 4) { // IF COLLIDES WITH KEY, PICK UP KEY
                         doesHoldKey = true;
                         map[level][i] = 1;
                     }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isCollisionBullet() {
+        for (Eye eye : eyes) {
+            for (Bullet bullet : eye.getBulletList()) {
+                Rectangle bulletG = bullet.getRectangleBullet();
+                if (checkCollision(bulletG.x, bulletG.y, 4, 4, player.x, player.y, player.height, player.width)) {
+                    create();
                     return true;
                 }
             }
