@@ -26,9 +26,9 @@ public class Defsan extends ApplicationAdapter {
     private float time = 0f;
     private float period = 0.2f;
 
-    private Texture neotpustit, playerImage, sheet, bulletImage;
+    private Texture neotpustit, sheet, bulletImage;
     private TextureRegion[] tiles;
-    public Rectangle player;
+    public Player player;
     private List<Eye> eyes = new ArrayList<>();
     private OrthographicCamera camera;
     private SpriteBatch batch;
@@ -64,12 +64,7 @@ public class Defsan extends ApplicationAdapter {
         map[1] = level_2.asIntArray();
 
         //player
-        player = new Rectangle();
-        player.x = 64;
-        player.y = -64;
-        player.height = t;
-        player.width = t;
-        playerImage = new Texture(Gdx.files.internal("player.png"));
+        player = new Player(new Rectangle(64, -64, t, t), new Texture(Gdx.files.internal("player.png")));
 
         //camera
         camera = new OrthographicCamera();
@@ -91,7 +86,7 @@ public class Defsan extends ApplicationAdapter {
     public void render() {
 
         ScreenUtils.clear(0, 0.2f, 0.2f, 1);
-        camera.position.set(player.getX() + 8, player.getY() + 8, 0);
+        camera.position.set(player.getPlayerRectangle().x + 8, player.getPlayerRectangle().y + 8, 0);
         camera.update();
 
         batch.setProjectionMatrix(camera.combined);
@@ -115,8 +110,9 @@ public class Defsan extends ApplicationAdapter {
             if (map[level][i] == 4) {
                 batch.draw(tiles[4], t * (i % 16), t * -(i / 16));
             }
-
         }
+        // render player
+        renderPlayer();
 
         // what the fuck
         time += Gdx.graphics.getDeltaTime();
@@ -124,7 +120,7 @@ public class Defsan extends ApplicationAdapter {
         if (count < 3) {
             if (time > period) {
                 for (Eye eye : eyes) {
-                    eye.addBullet(player.x, player.y);
+                    eye.addBullet(player.getPlayerRectangle().x, player.getPlayerRectangle().y);
                 }
             }
         }
@@ -136,7 +132,7 @@ public class Defsan extends ApplicationAdapter {
         }
 
         for (Eye eye : eyes) {
-            eye.moveBullet(player.x, player.y, count);
+            eye.moveBullet(player.getPlayerRectangle().x, player.getPlayerRectangle().y, count);
             for (Bullet bullet : eye.getBulletList()) {
                 batch.draw(bulletImage, bullet.getRectangleBullet().x, bullet.getRectangleBullet().y);
             }
@@ -150,27 +146,45 @@ public class Defsan extends ApplicationAdapter {
             expectedNextLevel++;
         }
 
-        batch.draw(playerImage, player.x, player.y);
+        renderPlayer();
 
         batch.end();
-
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) player.y += 100 * Gdx.graphics.getDeltaTime();
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) player.y -= 100 * Gdx.graphics.getDeltaTime();
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) player.x -= 100 * Gdx.graphics.getDeltaTime();
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) player.x += 100 * Gdx.graphics.getDeltaTime();
+        player.setXDelta(0);
+        player.setYDelta(0);
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+            player.getPlayerRectangle().y += 100 * Gdx.graphics.getDeltaTime();
+            player.setYDelta(1);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+            player.getPlayerRectangle().y -= 100 * Gdx.graphics.getDeltaTime();
+            player.setYDelta(-1);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+            player.getPlayerRectangle().x -= 100 * Gdx.graphics.getDeltaTime();
+            player.setXDelta(1);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+            player.getPlayerRectangle().x += 100 * Gdx.graphics.getDeltaTime();
+            player.setXDelta(-1);
+        }
 
         if (isCollision()) {
-            if (Gdx.input.isKeyPressed(Input.Keys.W)) player.y -= 100 * Gdx.graphics.getDeltaTime();
-            if (Gdx.input.isKeyPressed(Input.Keys.S)) player.y += 100 * Gdx.graphics.getDeltaTime();
-            if (Gdx.input.isKeyPressed(Input.Keys.A)) player.x += 100 * Gdx.graphics.getDeltaTime();
-            if (Gdx.input.isKeyPressed(Input.Keys.D)) player.x -= 100 * Gdx.graphics.getDeltaTime();
+            if (Gdx.input.isKeyPressed(Input.Keys.W))
+                player.getPlayerRectangle().y -= 100 * Gdx.graphics.getDeltaTime();
+            if (Gdx.input.isKeyPressed(Input.Keys.S))
+                player.getPlayerRectangle().y += 100 * Gdx.graphics.getDeltaTime();
+            if (Gdx.input.isKeyPressed(Input.Keys.A))
+                player.getPlayerRectangle().x += 100 * Gdx.graphics.getDeltaTime();
+            if (Gdx.input.isKeyPressed(Input.Keys.D))
+                player.getPlayerRectangle().x -= 100 * Gdx.graphics.getDeltaTime();
         }
         isCollisionBullet();
+        player.updateDirection();
     }
 
     @Override
     public void dispose() {
-        playerImage.dispose();
+        player.getTexture().dispose();
         batch.dispose();
     }
 
@@ -184,7 +198,7 @@ public class Defsan extends ApplicationAdapter {
     private boolean isCollision() {
         for (int i = 0; i < map[level].length; i++) {
             if (map[level][i] != 1 && map[level][i] != 3) { // COLLIDES NOT WITH FLOOR OR EYE
-                if (checkCollision(player.x, player.y, player.width, player.height / 2, t * (i % 16), t * -(i / 16), 16, 16)) {
+                if (checkCollision(player.getPlayerRectangle().x, player.getPlayerRectangle().y, player.getPlayerRectangle().width, player.getPlayerRectangle().height / 2, t * (i % 16), t * -(i / 16), 16, 16)) {
                     if (map[level][i] == 2 && doesHoldKey) // IF COLLIDES WITH DOOR, THEN CHANGE THE LEVEL (IF HOLDS KEY)
                         level++;
                     if (map[level][i] == 4) { // IF COLLIDES WITH KEY, PICK UP KEY
@@ -202,13 +216,22 @@ public class Defsan extends ApplicationAdapter {
         for (Eye eye : eyes) {
             for (Bullet bullet : eye.getBulletList()) {
                 Rectangle bulletG = bullet.getRectangleBullet();
-                if (checkCollision(bulletG.x, bulletG.y, 4, 4, player.x, player.y, player.height, player.width)) {
+                if (checkCollision(bulletG.x, bulletG.y, 8, 8, player.getPlayerRectangle().x, player.getPlayerRectangle().y, player.getPlayerRectangle().height, player.getPlayerRectangle().width)) {
                     create();
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    private void renderPlayer() {
+        TextureRegion[][] playerSprites = player.getPlayerSprites();
+        if (player.isInMotion()) {
+            batch.draw(playerSprites[player.getCurrentDirection()][1 + (int) player.getCurrentFrame()], player.getPlayerRectangle().x, player.getPlayerRectangle().y);
+        } else {
+            batch.draw(playerSprites[player.getCurrentDirection()][0], player.getPlayerRectangle().x, player.getPlayerRectangle().y);
+        }
     }
 
 }
